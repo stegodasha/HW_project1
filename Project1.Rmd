@@ -8,6 +8,119 @@ date: "2023-10-02"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Подключим необходимые пакеты
+
+```{r libraries}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+
+```
+### EDA (Exploratory data analysis)
+
+## Оценим структуру данных
+
+```{r data import}
+day <- read.csv("insurance.csv", sep=";")
+str(day)
+```
+
+В нашем датасете 731 наблюдение по 16 переменным
+
+instant: record index
+dteday: date
+season: season (1:springer, 2:summer, 3:fall, 4:winter)
+yr: year (0: 2011, 1:2012)
+mnth: month ( 1 to 12)
+hr: hour (0 to 23) !!в readme есть, у нас нету
+holiday: weather day is holiday or not 
+weekday: day of the week
+workingday: 1:workingday, 0:weekend or holiday.
+weathersit: 
+1: Clear, Few clouds, Partly cloudy, Partly cloudy
+2: Mist + Cloudy, Mist + Broken clouds, Mist + Few clouds, Mist
+3: Light Snow, Light Rain + Thunderstorm + Scattered clouds, Light Rain + Scattered clouds
+4: Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog
+temp : Normalized temperature in Celsius. The values are divided to 41 (max)
+atemp: Normalized feeling temperature in Celsius. The values are divided to 50 (max)
+hum: Normalized humidity. The values are divided to 100 (max)
+windspeed: Normalized wind speed. The values are divided to 67 (max)
+casual: count of casual users
+registered: count of registered users
+cnt: count of total rental bikes including both casual and registered
+
+Для переменных dteday, season, yr, mnth!!!, holiday, weekday, workingday, weathersit неправильно определен тип данных.
+Используем базовую функцию summary для оценки данных.
+
+```{r}
+summary(day)
+sum(is.na(day))
+```
+Видим, что для показателя hum (влажность) минимальное значение равняется нулю, что явно является выбросом, так как для данного региона такая влажность не характерна. В связи с чем принято решение удалить это наблюдение !!! или поставить NA?.
+
+```{r}
+which(day$hum == 0) #удалить это наблюдение !!! или поставить NA?.
+```
+
+Видим, что в данных есть пропущенные значения в таких переменных как  temp, hum, windspeed, registered. Всего 9 пропущенных значений.
+Посмотрим на конкретные пропущенные значения.
+
+```{r}
+which(is.na(day$temp))
+which(is.na(day$hum))
+which(is.na(day$windspeed))
+which(is.na(day$registered))
+```
+
+Видим, что для пропущенных значений в переменных temp, hum, windspeed остальные показатели все присутствуют, и они не выглядят аномальными или ошибочными, в связи с чем принято решение не удалять эти наблюдения. Для переменной registered принято решение заменить NA на количество зарегистрированных пользователей, которое можно получить путем вычитания количества casual пользователей из общего числа пользователей в этот день.
+
+```{r}
+day$registered[25] <- day$cnt[25] - day$casual[25]
+```
+
+На следующем этапе посмотрим на все уникальные значения для тех переменных, которые мы предполагаем, относятся к факторному типу, проверяем, что значения переменных соответствуют ожидаемым (из описания к данным).
+
+```{r}
+sort(unique(day$season))
+sort(unique(day$yr))
+sort(unique(day$mnth))
+sort(unique(day$holiday))
+sort(unique(day$workingday))
+sort(unique(day$weathersit))
+```
+
+Видим, чтозначения переменных соответствуют ожидаемым (из описания к данным). Приведем данные к соотвествующим типам (и присвоем человекочитаемые значения):
+
+```{r}
+day$dteday <- as.character.Date(day$dteday) # Даша, вроде ты это сделала уже
+day$season <- as.factor(day$season)
+day$holiday<- as.factor(day$holiday)
+day$workingday <- as.factor(day$workingday)
+day$weathersit <- as.factor(day$weathersit)
+day$yr #человекочитаемые значения присваиваем
+```
+
+Посмотрим на наличие выбросов с помощью боксплотов
+
+```{r}
+#Дашины боксплоты
+```
+
+Посмотрим на наличие корреляций между числовыми переменными
+
+```{r}
+#тут код Доржи для выбора числовых переменных и хитмэпа 
+```
+
+
+Дальше гипотезы
+
+
+
+
+
+
+
 ## R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
