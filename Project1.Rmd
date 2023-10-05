@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(knitr)
+library(heatmaply)
 
 ```
 ### EDA (Exploratory data analysis)
@@ -109,7 +110,27 @@ day$yr #человекочитаемые значения присваиваем
 Посмотрим на наличие корреляций между числовыми переменными
 
 ```{r}
-#тут код Доржи для выбора числовых переменных и хитмэпа 
+#Создание интерактивной тепловой карты корреляции с p-value 
+selected_cols <- c("season", "weathersit", "temp", "hum", "casual", "registered", "cnt")
+subset_data <- day[selected_cols]
+cor_matrix <- cor(subset_data)
+
+cor.test.p <- function(x){
+  FUN <- function(x, y) cor.test(x, y)[["p.value"]]
+  z <- outer(
+    colnames(x), 
+    colnames(x), 
+    Vectorize(function(i,j) FUN(x[,i], x[,j]))
+  )
+  dimnames(z) <- list(colnames(x), colnames(x))
+  z
+}
+
+p <- cor.test.p(subset_data)
+
+heatmaply_cor(cor_matrix, 
+              cellnote = p,
+              main = "Heatmap of Bike Sharing Dataset correlation'")
 ```
 
 
