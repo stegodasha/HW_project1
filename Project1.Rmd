@@ -1,5 +1,5 @@
 ---
-title: "Project1"
+title: "**Project1. Bike Sharing Dataset**"
 output: html_document
 date: "2023-10-02"
 ---
@@ -15,7 +15,7 @@ library(dplyr)
 library(ggplot2)
 library(knitr)
 library(heatmaply)
-
+library(plotly)
 ```
 ### EDA (Exploratory data analysis)
 
@@ -33,7 +33,6 @@ dteday: date
 season: season (1:springer, 2:summer, 3:fall, 4:winter)
 yr: year (0: 2011, 1:2012)
 mnth: month ( 1 to 12)
-hr: hour (0 to 23) !!в readme есть, у нас нету
 holiday: weather day is holiday or not 
 weekday: day of the week
 workingday: 1:workingday, 0:weekend or holiday.
@@ -50,7 +49,7 @@ casual: count of casual users
 registered: count of registered users
 cnt: count of total rental bikes including both casual and registered
 
-Для переменных dteday, season, yr, mnth!!!, holiday, weekday, workingday, weathersit неправильно определен тип данных.
+Для переменных dteday, season, yr, holiday, workingday, weathersit неправильно определен тип данных.
 Используем базовую функцию summary для оценки данных.
 
 ```{r}
@@ -84,19 +83,20 @@ day$registered[25] <- day$cnt[25] - day$casual[25]
 ```{r}
 sort(unique(day$season))
 sort(unique(day$yr))
-sort(unique(day$mnth))
+sort(unique(day$mnth))#
+sort(unique(day$weekday))#
 sort(unique(day$holiday))
 sort(unique(day$workingday))
 sort(unique(day$weathersit))
 ```
 
-Видим, чтозначения переменных соответствуют ожидаемым (из описания к данным). Приведем данные к соотвествующим типам (и присвоем человекочитаемые значения):
+Видим, что значения переменных соответствуют ожидаемым (из описания к данным). Приведем данные к соотвествующим типам (и присвоем человекочитаемые имена):
 
 ```{r}
 day$dteday <- as.character.Date(day$dteday) # Даша, вроде ты это сделала уже
 day$season <- as.factor(day$season)
 day$holiday<- as.factor(day$holiday)
-day$workingday <- as.factor(day$workingday)
+day$workingday <- as.factor(day$workingday) #делаем ли факторной (и месяц)
 day$weathersit <- as.factor(day$weathersit)
 day$yr #человекочитаемые значения присваиваем
 ```
@@ -134,9 +134,8 @@ heatmaply_cor(cor_matrix,
 ```
 
 
-Дальше гипотезы
+Гипотеза 1. Сравнение количества арендованных велосипедов в 2011 и 2012 годах.
 
-Сравнение количества арендованных велосипедов в 2011 и 2012 годах. 
 Н0: Количество арендованных велосипедов не отличается по годам
 Н1: Количество арендованных велосипедов отличается по годам
 Уровень значимости - 0.05
@@ -176,16 +175,98 @@ ggplot(day, aes(yr, cnt, fill = yr)) +
 
 
 
+Гипотеза 2. Проверим влияет ли прогноз погоды на количество арендованных велосипедов.
+В наших данных есть три варианта прогноза: 
+1: ясно, небольшая облачность, переменная облачность, переменная облачность.
+2: Туман + Облачно, Туман + Разрывы облаков, Туман + Мало облаков, Туман
+3: Небольшой снег, Небольшой дождь + Гроза + Рассеянные облака, Небольшой дождь + Рассеянные облака
 
-## R Markdown
+Мы предполагаем, что прогнозирование метеорологами снега, дождя или грозы 
+(прогноз зашифрован под цифрой 3) должно существенно снижать колличество арендованных велосипедов.  
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Посмотрим на распределение количества арендованных велосипедов в зависимости от прогноза погоды.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+plot_ly(
+  data = day_without_na,
+  y = ~cnt,
+  x = ~weathersit,
+  type = "box"
+)
 ```
+
+На основании полученного граифка действительно можно предположить, что неблагоприятный 
+прогноз погоды снижает количество арендованных велосипедов среди общего количеста арендованных велосипедов,
+включая как случайных пользователей, так и зарегистрированных.
+Давайте посмотрим отдельно на количество арендованных велосипедов случайных (casual) и зарегистрированных (registered) пользователей.
+
+```{r}
+# зарегистрированные (registered) пользователи
+
+plot_ly(
+  data = day_without_na,
+  y = ~registered,
+  x = ~weathersit,
+  type = "box"
+)
+
+
+# случайные (casual) пользователи
+plot_ly(
+  data = day_without_na,
+  y = ~casual,
+  x = ~weathersit,
+  type = "box"
+) 
+```
+Таким образом,для проверки гипотезы о том, что прогнозирование метеорологами тумана, облочности, снега, дождя или грозы (прогноз зашифрован под кодами 2 и 3) должно существенно снижать колличество арендованных велосипедов,
+необходимо проверить данные на нормальноть распределения c помощью численного  теста Шапиро-Уилка.
+Предварительно сформируем две группы для проверки гипотезы, в первую войдут показатели аренды велосипедов
+в дни с благоприятным прогнозом погоды без дождя (зашифровано под кодом 1 ), во вторую группу войдут показатели аренды велосипедов в дни с прогнозом погоды с туманом,дождем или снегом (прогноз зашифрован под кодами 2 и 3).
+
+```{r}
+weathersit_1 <- filter(day_without_na,weathersit == 1)$cnt
+weathersit2_3 <- filter(day_without_na,weathersit == 3 | weathersit == 2)$cnt
+
+shapiro.test(weathersit_1)
+shapiro.test(weathersit2_3)
+
+```
+1) Определим нулевую гипотезу: величины распределены одинаково и альтернативную - распределение 
+величин отличается.
+2) Зафиксируем уровень значимости - 0.05
+3) Будем использовать статистику критерия - U-критерий Манна — Уитни, так как данные по количеству арендованных велосипедов имеют ненормальное распределение
+
+```{r}
+wilcox.test(weathersit_1,weathersit2_3, correct = F)
+```
+Проверим, наблюдается ли аналогичная зависимость показатели аренды велосипедов для зарегистрированных пользователей и для случайных.
+
+
+
+```{r}
+# случайные (casual) пользователи
+weathersit_1 <- filter(day_without_na,weathersit == 1)$casual
+weathersit2_3 <- filter(day_without_na,weathersit == 3 | weathersit == 2)$casual
+wilcox.test(weathersit_1,weathersit2_3, correct = F)
+
+
+# зарегистрированные (registered) пользователи
+weathersit_1 <- filter(day_without_na,weathersit == 1)$registered
+weathersit2_3 <- filter(day_without_na,weathersit == 3 | weathersit == 2)$registered
+wilcox.test(weathersit_1,weathersit2_3, correct = F)
+
+```
+
+
+### Цитирование
+
+
+```{r}
+knitr::write_bib(c(.packages()), "packages.bib")
+```
+
+
 
 ## Including Plots
 
