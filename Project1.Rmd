@@ -300,6 +300,21 @@ wilcox.test(weekends1,workdays2, correct = F)
 ```
 Поскольку p-значение больше 0.05, мы не можем отвергнуть нулевую гипотезу. А значит количество арендованных велосипедов не отличается в будние дни и выходные.
 Посмотрим на аренду велосипедов в рабочие дни и на выходных среди зарегистрированных и случайных пользователей:
+Проанализируем данные на нормальность распределения:
+```{r}
+#Анализ данных на нормальность  распределения для случайных пользователей:
+weekends2 <- filter(day_without_na,workingday == "0")$casual
+workdays3 <- filter(day_without_na,workingday == "1")$casual
+shapiro.test(weekends1)
+shapiro.test(workdays2)
+#Анализ данных на нормальность  распределения для зарегистрированных пользователей:
+weekends3 <- filter(day_without_na,workingday == "0")$registered
+workdays4 <- filter(day_without_na,workingday == "1")$registered
+shapiro.test(weekends3)
+shapiro.test(workdays4)
+
+```  
+Во всех случаях данные оказались распределены не нормально, поэтому используем критерий Манна-Уитни.
 ```{r}
 # случайные (casual) пользователи
 weekends2 <- filter(day_without_na,workingday == "0")$casual
